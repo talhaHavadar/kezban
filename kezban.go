@@ -41,6 +41,12 @@ func (self *Model) SetItself(model interface{}) {
 	self.model = model
 }
 
+func (self *Model) Test() {
+	revel.INFO.Println("Model:", self.model)
+	results := GetFields(self.model, "unique")
+	revel.INFO.Println("Results:", results)
+}
+
 func (self *Model) Save() (*Model, error) {
 	self.UpdatedAt = time.Now()
 	if !self.checkAndSetCollectionName() {
@@ -48,7 +54,7 @@ func (self *Model) Save() (*Model, error) {
 		return nil, errors.New("Something went wrong while trying to fetch collection name.")
 	}
 	if !self.Id.Valid() { // first time creation
-		self.Id = bson.NewObjectIdWithTime(time.Now())
+		self.Id = bson.NewObjectId()
 		self.CreatedAt = time.Now()
 		err := Database.DB(revel.AppName).C(self.collectionName).Insert(&self.model)
 		bdata, errr := docToBson(self.model)
