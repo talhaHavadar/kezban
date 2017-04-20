@@ -134,6 +134,32 @@ func (self *Model) Search(query KezQu, indexes []string, models interface{}) (er
 	return mQuery.All(models)
 }
 
+func (self *Model) Remove(query interface{}) (err error) {
+	if !self.checkAndSetCollectionName() {
+		panic("Collection name was not set.")
+	}
+
+	var bsonQ bson.M
+	if bsonQ, err = docToBson(query); err != nil {
+		return err
+	}
+
+	return Database.DB(APPNAME).C(self.collectionName).Remove(bsonQ)
+}
+
+func (self *Model) Delete() (err error) {
+	if !self.checkAndSetCollectionName() {
+		panic("Collection name was not set.")
+	}
+
+	var bsonQ bson.M
+	if bsonQ, err = docToBson(self.model); err != nil {
+		return err
+	}
+
+	return Database.DB(APPNAME).C(self.collectionName).Remove(bsonQ)
+}
+
 func (self *Model) getMethodViaReflection(methodName string) (reflect.Value, string) {
 	modelVal := reflect.ValueOf(self.model)
 	function := modelVal.Elem().Addr().MethodByName(methodName)
