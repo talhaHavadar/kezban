@@ -42,9 +42,33 @@ func (self *Model) SetItself(model interface{}) {
 }
 
 func (self *Model) Test() {
-	revel.INFO.Println("Model:", self.model)
-	results := GetFields(self.model, "unique")
-	revel.INFO.Println("Results:", results)
+
+}
+
+func (self *Model) uniqueFieldCheck() error {
+	uniqueMap := GetFields(self.model, "unique")
+	revel.INFO.Println("map:",uniqueMap)
+	/**
+	* TODO: Unique check will be implemented via func (*Collection) EnsureIndex
+	*/
+	if len(uniqueMap) > 0 {
+		newModel := createEmptyStruct(self.model)
+		FillStruct(newModel, uniqueMap)
+		revel.INFO.Println("Val: ", newModel)
+		err := self.FindOne(newModel, newModel)
+		revel.INFO.Println(err, newModel)
+		if err != nil {
+			if err.Error() == "not found" {
+				return nil
+			} else {
+				return err
+			}
+		}
+		return errors.New("unique field duplicate")
+	} else {
+		return nil
+	}
+
 }
 
 func (self *Model) Save() (*Model, error) {
@@ -52,6 +76,10 @@ func (self *Model) Save() (*Model, error) {
 	if !self.checkAndSetCollectionName() {
 		revel.ERROR.Println("Something went wrong while trying to fetch collection name.")
 		return nil, errors.New("Something went wrong while trying to fetch collection name.")
+	}
+	if err := self.uniqueFieldCheck(); err != nil {
+		revel.ERROR.Println(err.Error())
+		return nil, err
 	}
 	if !self.Id.Valid() { // first time creation
 		self.Id = bson.NewObjectId()
