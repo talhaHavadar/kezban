@@ -2,7 +2,6 @@ package kezban
 
 import (
 	"time"
-	"github.com/revel/revel"
 	"reflect"
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
@@ -25,16 +24,17 @@ type Model struct {
 }
 
 var Database *mgo.Session = nil
-
-func Initialize(uri string) {
+var APPNAME string
+func Initialize(uri string, appname string) {
 	database, err := mgo.Dial(uri)
 	if err != nil {
-		revel.ERROR.Println("Database initialization failed!!")
+		fmt.Errorf("Database initialization failed!!\n")
 		return
 	}
 	database.SetMode(mgo.Monotonic, true)
 	Database = database
-	revel.INFO.Println("Database initialization is completed.")
+	APPNAME = appname
+	fmt.Println("Database initialization is completed.")
 }
 
 func (self *Model) SetItself(model interface{}) {
@@ -43,16 +43,13 @@ func (self *Model) SetItself(model interface{}) {
 
 func (self *Model) uniqueFieldCheck() error {
 	uniqueMap := GetFields(self.model, "unique")
-	revel.INFO.Println("map:",uniqueMap)
 	/**
 	* TODO: Unique check will be implemented via func (*Collection) EnsureIndex
 	*/
 	if len(uniqueMap) > 0 {
 		newModel := createEmptyStruct(self.model)
 		FillStruct(newModel, uniqueMap)
-		revel.INFO.Println("Val: ", newModel)
 		err := self.FindOne(newModel, newModel)
-		revel.INFO.Println(err, newModel)
 		if err != nil {
 			if err.Error() == "not found" {
 				return nil
@@ -70,30 +67,28 @@ func (self *Model) uniqueFieldCheck() error {
 func (self *Model) Save() (*Model, error) {
 	self.UpdatedAt = time.Now()
 	if !self.checkAndSetCollectionName() {
-		revel.ERROR.Println("Something went wrong while trying to fetch collection name.")
+		fmt.Errorf("Something went wrong while trying to fetch collection name.\n")
 		return nil, errors.New("Something went wrong while trying to fetch collection name.")
 	}
 	if err := self.uniqueFieldCheck(); err != nil {
-		revel.ERROR.Println(err.Error())
+		fmt.Errorf(err.Error() + "\n")
 		return nil, err
 	}
 	if !self.Id.Valid() { // first time creation
 		self.Id = bson.NewObjectId()
 		self.CreatedAt = time.Now()
-		err := Database.DB(revel.AppName).C(self.collectionName).Insert(&self.model)
-		bdata, errr := docToBson(self.model)
-		fmt.Println(bdata, errr)
+		err := Database.DB(APPNAME).C(self.collectionName).Insert(&self.model)
 		if err != nil {
-			revel.ERROR.Println(err)
+			fmt.Errorf(err.Error() + "\n")
 			return nil, err
 		}
 	} else {
-		err := Database.DB(revel.AppName).C(self.collectionName).Update(
+		err := Database.DB(APPNAME).C(self.collectionName).Update(
 			bson.M{"_id" : self.Id},
 			self.model,
 		)
 		if err != nil {
-			revel.ERROR.Println(err)
+			fmt.Errorf(err.Error() + "\n")
 			return nil, err
 		}
 	}
@@ -108,7 +103,7 @@ func (self *Model) FindOne(query interface{}, model interface{}) (err error) {
 	if q, err = self.constructQuery(query); err != nil {
 		return err
 	}
-	revel.INFO.Println("FindOne: q=", q, "self=", self)
+	fmt.Println("FindOne: q=", q, "self=", self)
 	return q.One(model)
 }
 
@@ -120,7 +115,7 @@ func (self *Model) FindOne(query interface{}, model interface{}) (err error) {
  */
 func (self *Model) FindAll(query KezQu, models interface{}) (error) {
 	mQuery, err := self.constructQuery(query.Query);
-	revel.INFO.Println("FindAll: mQuery=", mQuery)
+	fmt.Println("FindAll: mQuery=", mQuery)
 	if err != nil {
 		return err
 	}
@@ -132,7 +127,7 @@ func (self *Model) FindAll(query KezQu, models interface{}) (error) {
 
 func (self *Model) Search(query KezQu, indexes []string, models interface{}) (error) {
 	mQuery := self.constructSearchQuery(query.Query.(bson.M), indexes)
-	revel.INFO.Println("Search: mQuery=", mQuery)
+	fmt.Println("Search: mQuery=", mQuery)
 	if query.Limit > 0 {
 		mQuery.Limit(query.Limit)
 	}
@@ -152,7 +147,7 @@ func (self *Model) constructSearchQuery(query bson.M, indexes []string) (*mgo.Qu
 	if !self.checkAndSetCollectionName() {
 		panic("Collection name was not set.")
 	}
-	c := Database.DB(revel.AppName).C(self.collectionName)
+	c := Database.DB(APPNAME).C(self.collectionName)
 	index := mgo.Index{
 		Key: indexes,
 	}
@@ -173,8 +168,8 @@ func (self *Model) constructQuery(queryDoc interface{}) (*mgo.Query, error) {
 	if query, err = docToBson(queryDoc); err != nil {
 		return nil, err
 	}
-	revel.INFO.Println("constructQuery:", query, revel.AppName, self.collectionName)
-	return Database.DB(revel.AppName).C(self.collectionName).Find(query), nil
+	fmt.Println("constructQuery:", query, "AppName:", APPNAME, "CollectionName:", self.collectionName)
+	return Database.DB(APPNAME).C(self.collectionName).Find(query), nil
 }
 
 func (self *Model) checkAndSetCollectionName() bool {
