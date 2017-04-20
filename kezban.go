@@ -41,10 +41,6 @@ func (self *Model) SetItself(model interface{}) {
 	self.model = model
 }
 
-func (self *Model) Test() {
-
-}
-
 func (self *Model) uniqueFieldCheck() error {
 	uniqueMap := GetFields(self.model, "unique")
 	revel.INFO.Println("map:",uniqueMap)
