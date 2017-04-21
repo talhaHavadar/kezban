@@ -160,6 +160,13 @@ func (self *Model) Delete() (err error) {
 	return Database.DB(APPNAME).C(self.collectionName).Remove(bsonQ)
 }
 
+func (self *Model) Find(q bson.M) *mgo.Query {
+	if !self.checkAndSetCollectionName() {
+		panic("Collection name was not set.")
+	}
+	return Database.DB(APPNAME).C(self.collectionName).Find(q)
+}
+
 func (self *Model) getMethodViaReflection(methodName string) (reflect.Value, string) {
 	modelVal := reflect.ValueOf(self.model)
 	function := modelVal.Elem().Addr().MethodByName(methodName)
