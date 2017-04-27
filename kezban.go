@@ -25,16 +25,17 @@ type Model struct {
 
 var Database *mgo.Session = nil
 var APPNAME string
-func Initialize(uri string, appname string) {
+func Initialize(uri string, appname string) (error) {
 	database, err := mgo.Dial(uri)
 	if err != nil {
 		fmt.Errorf("Database initialization failed!!\n")
-		return
+		return err
 	}
 	database.SetMode(mgo.Monotonic, true)
 	Database = database
 	APPNAME = appname
 	fmt.Println("Database initialization is completed.")
+	return nil
 }
 
 func (self *Model) SetItself(model interface{}) {
