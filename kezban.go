@@ -153,9 +153,8 @@ func (self *Model) Delete() (err error) {
 		panic("Collection name was not set.")
 	}
 
-	var bsonQ bson.M
-	if bsonQ, err = docToBson(self.model); err != nil {
-		return err
+	var bsonQ bson.M = bson.M{
+		"_id": self.Id,
 	}
 
 	return Database.DB(APPNAME).C(self.collectionName).Remove(bsonQ)
