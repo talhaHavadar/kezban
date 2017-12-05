@@ -1,3 +1,3 @@
 ## Kezban
 
-The most grumpy ORM package for MongoDB in GO. 
+The most grumpy ODM package for MongoDB in GO. 
